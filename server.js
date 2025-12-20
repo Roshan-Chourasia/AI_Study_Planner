@@ -1,11 +1,24 @@
 import express from "express";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 dotenv.config();
 const app = express();
 app.use(express.json());
-app.use(express.static("public"));
+
+// Get directory path for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Serve static files from public directory
+app.use(express.static(join(__dirname, "public")));
+
+// Root route - serve the frontend
+app.get("/", (req, res) => {
+  res.sendFile(join(__dirname, "public", "index.html"));
+});
 
 app.post("/generate", async (req, res) => {
   const description = req.body.description;
