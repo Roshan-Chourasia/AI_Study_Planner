@@ -1,0 +1,87 @@
+:root {
+	--bg: #0b1020;
+	--card: #121938;
+	--muted: #93a1c8;
+	--text: #e8eeff;
+	--accent: #6c8cff;
+	--accent-2: #5ce1e6;
+	--danger: #ff6b6b;
+	--warning: #ffbb33;
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+	color: var(--text);
+	background: radial-gradient(1200px 600px at 10% -10%, #1a2457, transparent 60%),
+	            radial-gradient(1000px 500px at 110% 10%, #0e736b33, transparent 50%),
+	            var(--bg);
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 16px;
+}
+
+.container {
+	width: 100%;
+	max-width: 980px;
+	background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+	border: 1px solid rgba(255,255,255,0.08);
+	border-radius: 16px;
+	backdrop-filter: blur(8px);
+	box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+	padding: 24px;
+}
+
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: 0.4px; }
+.subtitle { color: var(--muted); margin: 4px 0 0 0; font-size: 14px; }
+
+.controls { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin: 16px 0 8px 0; }
+
+textarea {
+	width: 100%; height: 120px; resize: vertical; color: var(--text);
+	background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+	padding: 12px 14px; outline: none; transition: border-color .2s, box-shadow .2s;
+}
+textarea::placeholder { color: #c3cbea99; }
+textarea:focus { border-color: color-mix(in oklab, var(--accent) 70%, white); box-shadow: 0 0 0 3px rgba(108,140,255,0.25); }
+
+button {
+	height: 44px; padding: 0 16px; font-weight: 600; color: #0c1020;
+	background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; border-radius: 12px;
+	cursor: pointer; transition: transform .08s ease, filter .18s ease; box-shadow: 0 6px 18px rgba(108,140,255,0.35);
+}
+button:hover { filter: brightness(1.05); }
+button:active { transform: translateY(1px); }
+button[disabled] { cursor: not-allowed; filter: grayscale(0.2) brightness(0.85); }
+.btn-inner { display: inline-flex; align-items: center; gap: 8px; }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); border-top-color: rgba(12,16,32,0.8); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#output { margin-top: 20px; display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 14px; }
+
+.day-card { background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; }
+.day-title { display: flex; align-items: center; gap: 8px; font-size: 18px; margin: 0 0 10px 0; }
+.pill { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 4px rgba(108,140,255,0.18); }
+
+.slot { display: grid; grid-template-columns: 140px 1fr; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px dashed rgba(255,255,255,0.08); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); }
+.time { color: var(--muted); font-weight: 600; }
+.activity { color: var(--text); }
+.empty { color: var(--muted); font-style: italic; margin: 0; }
+
+.alert { padding: 10px 12px; border-radius: 10px; }
+.alert-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.35); color: #ffd9d9; }
+.alert-warn { background: rgba(255,187,51,0.1); border: 1px solid rgba(255,187,51,0.35); color: #ffe9c2; }
+.alert-info { background: rgba(108,140,255,0.12); border: 1px solid rgba(108,140,255,0.35); color: #dfe7ff; }
+
+.skeleton { position: relative; overflow: hidden; }
+.skeleton .shimmer { position: relative; background: linear-gradient(90deg, rgba(255,255,255,0.07), rgba(255,255,255,0.15), rgba(255,255,255,0.07)); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+@media (min-width: 720px) { .controls { grid-template-columns: 1fr 160px; } #output { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { #output { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+

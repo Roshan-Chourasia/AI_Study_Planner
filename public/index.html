@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Study Planner</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Study Planner Generator</h1>
+        <p class="subtitle">Describe your goals. Get a one-week timetable instantly.</p>
+      </div>
+    </div>
+    <div class="controls">
+      <textarea id="input" placeholder="e.g., 2 hours daily for Math and Physics, evenings only, include breaks"></textarea>
+      <button id="generateBtn" onclick="generate()"><span class="btn-inner"><span>Generate</span></span></button>
+    </div>
+    <div id="output"></div>
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>
