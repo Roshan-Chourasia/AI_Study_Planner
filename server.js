@@ -9,16 +9,21 @@ import mammoth from "mammoth";
 
 dotenv.config();
 
+const app = express();
+// Add basic body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configure Multer for file uploads (memory storage with 5MB limit)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } 
+});
+
 // Fail-safe check for Vercel environment
 if (!process.env.GEMINI_API_KEY && process.env.VERCEL === "1") {
   console.warn("WARNING: GEMINI_API_KEY is not set in Vercel environment variables.");
 }
-
-const app = express();
-app.use(express.json());
-
-// Configure Multer for file uploads (memory storage)
-const upload = multer({ storage: multer.memoryStorage() });
 
 // Get directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -32,9 +37,23 @@ app.get("/", (req, res) => {
   res.sendFile(join(__dirname, "public", "index.html"));
 });
 
-app.post("/generate", upload.single('notesFile'), async (req, res) => {
-  const description = req.body.description;
-  let notesText = "";
+app.post("/generate", (req, res, next) => {
+  upload.single('notesFile')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: "File upload error", detail: err.message });
+    } else if (err) {
+      return res.status(500).json({ error: "Unknown upload error", detail: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const description = req.body.description;
+    if (!description) {
+      return res.status(400).send({ error: "Missing description" });
+    }
+
+    let notesText = "";
 
   // Extract text from uploaded file if present
   if (req.file) {
@@ -150,9 +169,9 @@ Return ONLY valid JSON in this exact format:
     
     res.send(parsed);
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Critical Server Error:", err);
     res.status(500).send({ 
-      error: "Failed to generate timetable", 
+      error: "Internal Server Error", 
       detail: err.message 
     });
   }
