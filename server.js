@@ -4,7 +4,6 @@ import fetch from "node-fetch";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import multer from "multer";
-import pdf from "pdf-parse/lib/pdf-parse.js";
 import mammoth from "mammoth";
 
 dotenv.config();
@@ -63,6 +62,8 @@ app.post("/generate", (req, res, next) => {
         const fileName = req.file.originalname;
 
         if (mimeType === "application/pdf") {
+          // Dynamic import for Vercel stability
+          const pdf = (await import("pdf-parse/lib/pdf-parse.js")).default;
           const data = await pdf(fileBuffer);
           notesText = data.text;
         } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
