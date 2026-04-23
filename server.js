@@ -8,6 +8,12 @@ import pdf from "pdf-parse/lib/pdf-parse.js";
 import mammoth from "mammoth";
 
 dotenv.config();
+
+// Fail-safe check for Vercel environment
+if (!process.env.GEMINI_API_KEY && process.env.VERCEL === "1") {
+  console.warn("WARNING: GEMINI_API_KEY is not set in Vercel environment variables.");
+}
+
 const app = express();
 app.use(express.json());
 
