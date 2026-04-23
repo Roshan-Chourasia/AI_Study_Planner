@@ -55,41 +55,41 @@ app.post("/generate", (req, res, next) => {
 
     let notesText = "";
 
-  // Extract text from uploaded file if present
-  if (req.file) {
-    try {
-      const fileBuffer = req.file.buffer;
-      const mimeType = req.file.mimetype;
-      const fileName = req.file.originalname;
+    // Extract text from uploaded file if present
+    if (req.file) {
+      try {
+        const fileBuffer = req.file.buffer;
+        const mimeType = req.file.mimetype;
+        const fileName = req.file.originalname;
 
-      if (mimeType === "application/pdf") {
-        const data = await pdf(fileBuffer);
-        notesText = data.text;
-      } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        const data = await mammoth.extractRawText({ buffer: fileBuffer });
-        notesText = data.value;
-      } else if (mimeType.startsWith("text/") || fileName.endsWith(".md")) {
-        notesText = fileBuffer.toString('utf8');
-      } else {
-        // Fallback: try reading as text
-        notesText = fileBuffer.toString('utf8');
+        if (mimeType === "application/pdf") {
+          const data = await pdf(fileBuffer);
+          notesText = data.text;
+        } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+          const data = await mammoth.extractRawText({ buffer: fileBuffer });
+          notesText = data.value;
+        } else if (mimeType.startsWith("text/") || fileName.endsWith(".md")) {
+          notesText = fileBuffer.toString('utf8');
+        } else {
+          // Fallback: try reading as text
+          notesText = fileBuffer.toString('utf8');
+        }
+      } catch (parseError) {
+        console.error("File parsing error:", parseError);
+        // Continue without notes if parsing fails
       }
-    } catch (parseError) {
-      console.error("File parsing error:", parseError);
-      // Continue without notes if parsing fails
     }
-  }
-  
-  // Check if API key is available
-  if (!process.env.GEMINI_API_KEY) {
-    console.error("GEMINI_API_KEY environment variable is not set");
-    return res.status(500).send({ 
-      error: "Server configuration error", 
-      detail: "API key not configured. Please set GEMINI_API_KEY environment variable." 
-    });
-  }
 
-  const prompt = `
+    // Check if API key is available
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY environment variable is not set");
+      return res.status(500).send({
+        error: "Server configuration error",
+        detail: "API key not configured. Please set GEMINI_API_KEY environment variable."
+      });
+    }
+
+    const prompt = `
 You are an expert study planner. Create a one-week study timetable and extra study material (Important Topics and Important Questions) based on the description and provided notes below.
 
 USER DESCRIPTION:
@@ -133,7 +133,6 @@ Return ONLY valid JSON in this exact format:
 }
 `;
 
-  try {
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
       {
@@ -159,20 +158,20 @@ Return ONLY valid JSON in this exact format:
 
     // Clean the response text (remove markdown formatting if present)
     const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
+
     const parsed = JSON.parse(cleanedText);
-    
+
     // Validate the structure
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error("Invalid JSON structure returned");
     }
-    
+
     res.send(parsed);
   } catch (err) {
     console.error("Critical Server Error:", err);
-    res.status(500).send({ 
-      error: "Internal Server Error", 
-      detail: err.message 
+    res.status(500).send({
+      error: "Internal Server Error",
+      detail: err.message
     });
   }
 });
