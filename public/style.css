@@ -40,10 +40,21 @@ body {
 h1 { font-size: 26px; margin: 0; letter-spacing: 0.4px; }
 .subtitle { color: var(--muted); margin: 4px 0 0 0; font-size: 14px; }
 
-.controls { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin: 16px 0 8px 0; }
+.controls { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 16px 0 8px 0; }
+.side-controls { display: flex; flex-direction: column; gap: 12px; }
+
+.file-label {
+	display: flex; flex-direction: column; align-items: center; justify-content: center;
+	gap: 4px; padding: 12px; background: var(--card); border: 2px dashed rgba(255,255,255,0.12);
+	border-radius: 12px; cursor: pointer; transition: background .2s, border-color .2s;
+	font-size: 13px; color: var(--muted);
+}
+.file-label:hover { background: rgba(255,255,255,0.04); border-color: var(--accent); }
+.file-label input { display: none; }
+.file-icon { font-size: 20px; }
 
 textarea {
-	width: 100%; height: 120px; resize: vertical; color: var(--text);
+	width: 100%; height: 120px; resize: none; color: var(--text);
 	background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
 	padding: 12px 14px; outline: none; transition: border-color .2s, box-shadow .2s;
 }
@@ -82,6 +93,15 @@ button[disabled] { cursor: not-allowed; filter: grayscale(0.2) brightness(0.85);
 .skeleton .shimmer { position: relative; background: linear-gradient(90deg, rgba(255,255,255,0.07), rgba(255,255,255,0.15), rgba(255,255,255,0.07)); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-@media (min-width: 720px) { .controls { grid-template-columns: 1fr 160px; } #output { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 720px) { .controls { grid-template-columns: 1fr 200px; } #output { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { #output { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.extra-content { margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 720px) { .extra-content { grid-template-columns: 1fr 1fr; } }
+
+.extra-card { background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; }
+.extra-card h3 { margin: 0 0 12px 0; font-size: 18px; color: var(--accent-2); display: flex; align-items: center; gap: 8px; }
+.extra-card ul { margin: 0; padding-left: 20px; color: var(--muted); }
+.extra-card li { margin-bottom: 8px; line-height: 1.5; }
+.extra-card li::marker { color: var(--accent); }
 

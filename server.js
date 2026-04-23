@@ -21,7 +21,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/generate", async (req, res) => {
-  const description = req.body.description;
+  const { description, notes } = req.body;
   
   // Check if API key is available
   if (!process.env.GEMINI_API_KEY) {
@@ -33,37 +33,46 @@ app.post("/generate", async (req, res) => {
   }
 
   const prompt = `
-You are an expert study planner. Create a one-week study timetable based on the description below.
+You are an expert study planner. Create a one-week study timetable and extra study material (Important Topics and Important Questions) based on the description and provided notes below.
+
+USER DESCRIPTION:
 ${description}
+
+USER NOTES/STUDY MATERIAL:
+${notes || "No notes provided."}
 
 Return ONLY valid JSON in this exact format:
 {
-  "Monday": [
-    {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Math"},
-    {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Physics"}
-  ],
-  "Tuesday": [
-    {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Chemistry"},
-    {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Biology"}
-  ],
-  "Wednesday": [
-    {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Math"},
-    {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Physics"}
-  ],
-  "Thursday": [
-    {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Chemistry"},
-    {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Biology"}
-  ],
-  "Friday": [
-    {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Math"},
-    {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Physics"}
-  ],
-  "Saturday": [
-    {"startTime": "10:00 AM", "endTime": "11:30 AM", "activity": "Review Week's Material"}
-  ],
-  "Sunday": [
-    {"startTime": "10:00 AM", "endTime": "11:30 AM", "activity": "Plan Next Week"}
-  ]
+  "timetable": {
+    "Monday": [
+      {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Math"},
+      {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Physics"}
+    ],
+    "Tuesday": [
+      {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Chemistry"},
+      {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Biology"}
+    ],
+    "Wednesday": [
+      {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Math"},
+      {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Physics"}
+    ],
+    "Thursday": [
+      {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Chemistry"},
+      {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Biology"}
+    ],
+    "Friday": [
+      {"startTime": "9:00 AM", "endTime": "10:30 AM", "activity": "Study Math"},
+      {"startTime": "11:00 AM", "endTime": "12:30 PM", "activity": "Study Physics"}
+    ],
+    "Saturday": [
+      {"startTime": "10:00 AM", "endTime": "11:30 AM", "activity": "Review Week's Material"}
+    ],
+    "Sunday": [
+      {"startTime": "10:00 AM", "endTime": "11:30 AM", "activity": "Plan Next Week"}
+    ]
+  },
+  "importantTopics": ["Topic 1", "Topic 2", "Topic 3"],
+  "importantQuestions": ["Question 1?", "Question 2?", "Question 3?"]
 }
 `;
 

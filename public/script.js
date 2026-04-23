@@ -15,7 +15,7 @@ function renderSkeleton(outputDiv) {
 			const time = document.createElement("div");
 			time.className = "shimmer";
 			time.style.height = "16px";
-			time.style.width = "120px";
+			time.style.width = "80px";
 			const act = document.createElement("div");
 			act.className = "shimmer";
 			act.style.height = "16px";
@@ -30,12 +30,24 @@ function renderSkeleton(outputDiv) {
 
 async function generate() {
 	const description = document.getElementById("input").value;
+	const fileInput = document.getElementById("notes-upload");
 	const outputDiv = document.getElementById("output");
+	const extraDiv = document.getElementById("extra-content");
 	const btn = document.getElementById("generateBtn");
 	
 	if (!description.trim()) {
 		outputDiv.innerHTML = "<div class='alert alert-info'>Please enter a description for your study plan.</div>";
 		return;
+	}
+
+	let notes = "";
+	if (fileInput.files.length > 0) {
+		const file = fileInput.files[0];
+		notes = await new Promise((resolve) => {
+			const reader = new FileReader();
+			reader.onload = (e) => resolve(e.target.result);
+			reader.readAsText(file);
+		});
 	}
 	
 	try {
@@ -43,10 +55,12 @@ async function generate() {
 		btn.disabled = true;
 		btn.innerHTML = `<span class="btn-inner"><span class="spinner"></span><span>Generating...</span></span>`;
 		renderSkeleton(outputDiv);
+		extraDiv.innerHTML = "";
+
 		const res = await fetch("/generate", {
 			method: "POST",
 			headers: {"Content-Type": "application/json"},
-			body: JSON.stringify({ description })
+			body: JSON.stringify({ description, notes })
 		});
 		
 		const data = await res.json();
@@ -57,17 +71,12 @@ async function generate() {
 			return;
 		}
 		
-		// Check if the response is not an object or doesn't have the expected structure
-		if (typeof data !== 'object' || data === null) {
-			outputDiv.innerHTML = "<div class='alert alert-error'>Invalid response format received from server.</div>";
-			return;
-		}
-		
 		outputDiv.innerHTML = "";
+		const timetableData = data.timetable || data; // Fallback for old format
 
-		// Normalize and render in weekday order, ensuring Saturday appears
+		// Normalize and render in weekday order
 		const normalized = {};
-		DAYS.forEach(d => { normalized[d] = Array.isArray(data[d]) ? data[d] : []; });
+		DAYS.forEach(d => { normalized[d] = Array.isArray(timetableData[d]) ? timetableData[d] : []; });
 		
 		for (const day of DAYS) {
 			const dayCard = document.createElement("div");
@@ -100,9 +109,27 @@ async function generate() {
 			}
 			outputDiv.appendChild(dayCard);
 		}
+
+		// Render Extra Content (Topics and Questions)
+		if (data.importantTopics || data.importantQuestions) {
+			extraDiv.innerHTML = `
+				<div class="extra-card">
+					<h3><span class="file-icon">🎯</span> Important Topics</h3>
+					<ul>
+						${(data.importantTopics || []).map(t => `<li>${t}</li>`).join('')}
+					</ul>
+				</div>
+				<div class="extra-card">
+					<h3><span class="file-icon">❓</span> Important Questions</h3>
+					<ul>
+						${(data.importantQuestions || []).map(q => `<li>${q}</li>`).join('')}
+					</ul>
+				</div>
+			`;
+		}
 		
 		// If no days were processed, show a message
-		if (Object.keys(data).length === 0) {
+		if (Object.keys(timetableData).length === 0) {
 			outputDiv.innerHTML = "<div class='alert alert-warn'>No study plan was generated. Please try again with a different description.</div>";
 		}
 		
@@ -117,4 +144,22 @@ async function generate() {
 
 // Expose generate to global scope for onclick handler
 window.generate = generate;
+
+// Add event listener for file input to show selected filename
+document.addEventListener('DOMContentLoaded', () => {
+	const fileInput = document.getElementById("notes-upload");
+	const fileLabel = document.querySelector(".file-label span:nth-child(2)");
+	
+	if (fileInput) {
+		fileInput.addEventListener('change', (e) => {
+			if (e.target.files.length > 0) {
+				fileLabel.textContent = `Selected: ${e.target.files[0].name}`;
+				fileLabel.style.color = "var(--accent-2)";
+			} else {
+				fileLabel.textContent = "Upload Notes (Text)";
+				fileLabel.style.color = "var(--muted)";
+			}
+		});
+	}
+});
 
