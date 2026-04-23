@@ -3,10 +3,16 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import multer from "multer";
+import pdf from "pdf-parse/lib/pdf-parse.js";
+import mammoth from "mammoth";
 
 dotenv.config();
 const app = express();
 app.use(express.json());
+
+// Configure Multer for file uploads (memory storage)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Get directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -20,8 +26,34 @@ app.get("/", (req, res) => {
   res.sendFile(join(__dirname, "public", "index.html"));
 });
 
-app.post("/generate", async (req, res) => {
-  const { description, notes } = req.body;
+app.post("/generate", upload.single('notesFile'), async (req, res) => {
+  const description = req.body.description;
+  let notesText = "";
+
+  // Extract text from uploaded file if present
+  if (req.file) {
+    try {
+      const fileBuffer = req.file.buffer;
+      const mimeType = req.file.mimetype;
+      const fileName = req.file.originalname;
+
+      if (mimeType === "application/pdf") {
+        const data = await pdf(fileBuffer);
+        notesText = data.text;
+      } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        const data = await mammoth.extractRawText({ buffer: fileBuffer });
+        notesText = data.value;
+      } else if (mimeType.startsWith("text/") || fileName.endsWith(".md")) {
+        notesText = fileBuffer.toString('utf8');
+      } else {
+        // Fallback: try reading as text
+        notesText = fileBuffer.toString('utf8');
+      }
+    } catch (parseError) {
+      console.error("File parsing error:", parseError);
+      // Continue without notes if parsing fails
+    }
+  }
   
   // Check if API key is available
   if (!process.env.GEMINI_API_KEY) {
@@ -39,7 +71,7 @@ USER DESCRIPTION:
 ${description}
 
 USER NOTES/STUDY MATERIAL:
-${notes || "No notes provided."}
+${notesText || "No notes provided."}
 
 Return ONLY valid JSON in this exact format:
 {

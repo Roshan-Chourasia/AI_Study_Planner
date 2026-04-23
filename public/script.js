@@ -41,13 +41,11 @@ async function generate() {
 	}
 
 	let notes = "";
+	const formData = new FormData();
+	formData.append("description", description);
+
 	if (fileInput.files.length > 0) {
-		const file = fileInput.files[0];
-		notes = await new Promise((resolve) => {
-			const reader = new FileReader();
-			reader.onload = (e) => resolve(e.target.result);
-			reader.readAsText(file);
-		});
+		formData.append("notesFile", fileInput.files[0]);
 	}
 	
 	try {
@@ -59,8 +57,7 @@ async function generate() {
 
 		const res = await fetch("/generate", {
 			method: "POST",
-			headers: {"Content-Type": "application/json"},
-			body: JSON.stringify({ description, notes })
+			body: formData
 		});
 		
 		const data = await res.json();
