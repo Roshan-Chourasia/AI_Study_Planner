@@ -37,7 +37,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/generate", (req, res, next) => {
-  upload.single('notesFile')(req, res, (err) => {
+  upload.array('notesFiles', 10)(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: "File upload error", detail: err.message });
     } else if (err) {
@@ -54,31 +54,34 @@ app.post("/generate", (req, res, next) => {
 
     let notesText = "";
 
-    // Extract text from uploaded file if present
-    if (req.file) {
-      try {
-        const fileBuffer = req.file.buffer;
-        const mimeType = req.file.mimetype;
-        const fileName = req.file.originalname;
+    // Extract text from uploaded files if present
+    if (req.files && req.files.length > 0) {
+      const extractionPromises = req.files.map(async (file) => {
+        try {
+          const fileBuffer = file.buffer;
+          const mimeType = file.mimetype;
+          const fileName = file.originalname;
 
-        if (mimeType === "application/pdf") {
-          // Dynamic import for Vercel stability
-          const pdf = (await import("pdf-parse/lib/pdf-parse.js")).default;
-          const data = await pdf(fileBuffer);
-          notesText = data.text;
-        } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-          const data = await mammoth.extractRawText({ buffer: fileBuffer });
-          notesText = data.value;
-        } else if (mimeType.startsWith("text/") || fileName.endsWith(".md")) {
-          notesText = fileBuffer.toString('utf8');
-        } else {
-          // Fallback: try reading as text
-          notesText = fileBuffer.toString('utf8');
+          if (mimeType === "application/pdf") {
+            const pdf = (await import("pdf-parse/lib/pdf-parse.js")).default;
+            const data = await pdf(fileBuffer);
+            return `--- Content from ${fileName} ---\n${data.text}\n`;
+          } else if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+            const data = await mammoth.extractRawText({ buffer: fileBuffer });
+            return `--- Content from ${fileName} ---\n${data.value}\n`;
+          } else if (mimeType.startsWith("text/") || fileName.endsWith(".md")) {
+            return `--- Content from ${fileName} ---\n${fileBuffer.toString('utf8')}\n`;
+          } else {
+            return `--- Content from ${fileName} ---\n${fileBuffer.toString('utf8')}\n`;
+          }
+        } catch (parseError) {
+          console.error(`Error parsing ${file.originalname}:`, parseError);
+          return `--- Error parsing ${file.originalname} ---\n`;
         }
-      } catch (parseError) {
-        console.error("File parsing error:", parseError);
-        // Continue without notes if parsing fails
-      }
+      });
+
+      const extractedTexts = await Promise.all(extractionPromises);
+      notesText = extractedTexts.join("\n");
     }
 
     // Check if API key is available

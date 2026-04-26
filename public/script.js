@@ -45,7 +45,9 @@ async function generate() {
 	formData.append("description", description);
 
 	if (fileInput.files.length > 0) {
-		formData.append("notesFile", fileInput.files[0]);
+		for (let i = 0; i < fileInput.files.length; i++) {
+			formData.append("notesFiles", fileInput.files[i]);
+		}
 	}
 	
 	try {
@@ -156,10 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (fileInput) {
 		fileInput.addEventListener('change', (e) => {
 			if (e.target.files.length > 0) {
-				fileLabel.textContent = `Selected: ${e.target.files[0].name}`;
+				const count = e.target.files.length;
+				fileLabel.textContent = `Selected: ${count} file${count > 1 ? 's' : ''}`;
 				fileLabel.style.color = "var(--accent-2)";
 			} else {
-				fileLabel.textContent = "Upload Notes (Text)";
+				fileLabel.textContent = "Upload Notes (PDF, Word, PPT, Text)";
 				fileLabel.style.color = "var(--muted)";
 			}
 		});
