@@ -27,8 +27,15 @@
     </div>
     <div id="output"></div>
     <div id="extra-content" class="extra-content"></div>
+    
+    <div id="action-bar" class="action-bar hidden">
+      <button id="editBtn" onclick="toggleEdit()"><span class="btn-inner">✏️ Edit</span></button>
+      <button id="saveBtn" onclick="toggleSave()" class="hidden"><span class="btn-inner">💾 Save</span></button>
+      <button id="downloadBtn" onclick="downloadImage()"><span class="btn-inner">🖼️ Download Image</span></button>
+    </div>
   </div>
 
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="/script.js"></script>
 </body>
 </html>

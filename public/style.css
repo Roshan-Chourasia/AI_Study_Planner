@@ -105,3 +105,46 @@ button[disabled] { cursor: not-allowed; filter: grayscale(0.2) brightness(0.85);
 .extra-card li { margin-bottom: 8px; line-height: 1.5; }
 .extra-card li::marker { color: var(--accent); }
 
+.action-bar {
+	margin-top: 32px;
+	padding-top: 24px;
+	border-top: 1px solid rgba(255,255,255,0.08);
+	display: flex;
+	justify-content: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.action-bar button {
+	background: var(--card);
+	border: 1px solid rgba(255,255,255,0.12);
+	color: var(--text);
+	box-shadow: none;
+}
+
+.action-bar button:hover {
+	background: rgba(255,255,255,0.05);
+	border-color: var(--accent);
+}
+
+#saveBtn {
+	background: linear-gradient(135deg, #2ecc71, #27ae60);
+	color: white;
+	border: none;
+}
+
+.hidden { display: none !important; }
+
+[contenteditable="true"] {
+	outline: 2px dashed var(--accent);
+	outline-offset: 4px;
+	border-radius: 4px;
+	background: rgba(108,140,255,0.05);
+	cursor: text;
+}
+
+[contenteditable="true"]:focus {
+	background: rgba(108,140,255,0.1);
+	outline: 2px solid var(--accent-2);
+}
+
