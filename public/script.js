@@ -1,5 +1,167 @@
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
+let currentUser = null;
+
+async function checkAuth() {
+	const token = localStorage.getItem("token");
+	if (token) {
+		try {
+			const res = await fetch("/api/me", {
+				headers: { "Authorization": `Bearer ${token}` }
+			});
+			if (res.ok) {
+				const data = await res.json();
+				currentUser = data;
+				updateUserUI(data.email);
+				if (data.lastPlan) {
+					renderPlan(data.lastPlan);
+					document.getElementById("action-bar").classList.remove("hidden");
+				}
+			} else {
+				localStorage.removeItem("token");
+			}
+		} catch (err) {
+			console.error("Auth check failed:", err);
+		}
+	}
+}
+
+function updateUserUI(email) {
+	document.getElementById("auth-btn").classList.add("hidden");
+	document.getElementById("user-info").classList.remove("hidden");
+	document.getElementById("user-email").textContent = email;
+}
+
+function openAuthModal() {
+	document.getElementById("auth-modal").classList.remove("hidden");
+}
+
+function closeAuthModal() {
+	document.getElementById("auth-modal").classList.add("hidden");
+}
+
+function toggleAuthForms() {
+	document.getElementById("login-form").classList.toggle("hidden");
+	document.getElementById("signup-form").classList.toggle("hidden");
+}
+
+async function login() {
+	const email = document.getElementById("login-email").value;
+	const password = document.getElementById("login-password").value;
+	
+	try {
+		const res = await fetch("/api/login", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ email, password })
+		});
+		const data = await res.json();
+		if (res.ok) {
+			localStorage.setItem("token", data.token);
+			currentUser = { email: data.email, lastPlan: data.lastPlan };
+			updateUserUI(data.email);
+			closeAuthModal();
+			if (data.lastPlan) {
+				renderPlan(data.lastPlan);
+				document.getElementById("action-bar").classList.remove("hidden");
+			}
+		} else {
+			alert(data.error || "Login failed");
+		}
+	} catch (err) {
+		alert("Login error: " + err.message);
+	}
+}
+
+async function signup() {
+	const email = document.getElementById("signup-email").value;
+	const password = document.getElementById("signup-password").value;
+	
+	try {
+		const res = await fetch("/api/signup", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ email, password })
+		});
+		const data = await res.json();
+		if (res.ok) {
+			localStorage.setItem("token", data.token);
+			currentUser = { email: data.email };
+			updateUserUI(data.email);
+			closeAuthModal();
+		} else {
+			alert(data.error || "Signup failed");
+		}
+	} catch (err) {
+		alert("Signup error: " + err.message);
+	}
+}
+
+function logout() {
+	localStorage.removeItem("token");
+	location.reload();
+}
+
+function renderPlan(data) {
+	const outputDiv = document.getElementById("output");
+	const extraDiv = document.getElementById("extra-content");
+	
+	outputDiv.innerHTML = "";
+	const timetableData = data.timetable || data;
+
+	const normalized = {};
+	DAYS.forEach(d => { normalized[d] = Array.isArray(timetableData[d]) ? timetableData[d] : []; });
+	
+	for (const day of DAYS) {
+		const dayCard = document.createElement("div");
+		dayCard.className = "day-card";
+
+		const h = document.createElement("h2");
+		h.className = "day-title";
+		h.innerHTML = `<span class='pill'></span>${day}`;
+		dayCard.appendChild(h);
+		
+		if (Array.isArray(normalized[day]) && normalized[day].length > 0) {
+			normalized[day].forEach(s => {
+				const slot = document.createElement("div");
+				slot.className = "slot";
+				const time = document.createElement("div");
+				time.className = "time";
+				time.textContent = `${s.startTime} – ${s.endTime}`;
+				const activity = document.createElement("div");
+				activity.className = "activity";
+				activity.textContent = s.activity;
+				slot.appendChild(time);
+				slot.appendChild(activity);
+				dayCard.appendChild(slot);
+			});
+		} else {
+			const p = document.createElement("p");
+			p.className = "empty";
+			p.textContent = "No activities scheduled for this day.";
+			dayCard.appendChild(p);
+		}
+		outputDiv.appendChild(dayCard);
+	}
+
+	if (data.importantTopics || data.importantQuestions) {
+		extraDiv.innerHTML = `
+			<div class="extra-card">
+				<h3><span class="file-icon">🎯</span> Important Topics</h3>
+				<ul>
+					${(data.importantTopics || []).map(t => `<li>${t}</li>`).join('')}
+				</ul>
+			</div>
+			<div class="extra-card">
+				<h3><span class="file-icon">❓</span> Important Questions</h3>
+				<ul>
+					${(data.importantQuestions || []).map(q => `<li>${q}</li>`).join('')}
+				</ul>
+			</div>
+		`;
+	}
+}
+
 function renderSkeleton(outputDiv) {
 	outputDiv.innerHTML = "";
 	DAYS.forEach(day => {
@@ -35,6 +197,13 @@ async function generate() {
 	const extraDiv = document.getElementById("extra-content");
 	const btn = document.getElementById("generateBtn");
 	
+	const token = localStorage.getItem("token");
+	if (!token) {
+		alert("Please Sign In first to generate and save your study plan.");
+		openAuthModal();
+		return;
+	}
+
 	if (!description.trim()) {
 		outputDiv.innerHTML = "<div class='alert alert-info'>Please enter a description for your study plan.</div>";
 		return;
@@ -62,6 +231,7 @@ async function generate() {
 
 		const res = await fetch("/generate", {
 			method: "POST",
+			headers: { "Authorization": `Bearer ${token}` },
 			body: formData
 		});
 		
@@ -70,67 +240,17 @@ async function generate() {
 		// Check if the response contains an error
 		if (data.error) {
 			outputDiv.innerHTML = `<div class='alert alert-error'><strong>Error:</strong> ${data.error}<br><span style='opacity:.9'>${data.detail || 'No additional details'}</span></div>`;
+			if (res.status === 401 || res.status === 403) {
+				localStorage.removeItem("token");
+				openAuthModal();
+			}
 			return;
 		}
 		
-		outputDiv.innerHTML = "";
-		const timetableData = data.timetable || data; // Fallback for old format
-
-		// Normalize and render in weekday order
-		const normalized = {};
-		DAYS.forEach(d => { normalized[d] = Array.isArray(timetableData[d]) ? timetableData[d] : []; });
-		
-		for (const day of DAYS) {
-			const dayCard = document.createElement("div");
-			dayCard.className = "day-card";
-
-			const h = document.createElement("h2");
-			h.className = "day-title";
-			h.innerHTML = `<span class='pill'></span>${day}`;
-			dayCard.appendChild(h);
-			
-			if (Array.isArray(normalized[day]) && normalized[day].length > 0) {
-				normalized[day].forEach(s => {
-					const slot = document.createElement("div");
-					slot.className = "slot";
-					const time = document.createElement("div");
-					time.className = "time";
-					time.textContent = `${s.startTime} – ${s.endTime}`;
-					const activity = document.createElement("div");
-					activity.className = "activity";
-					activity.textContent = s.activity;
-					slot.appendChild(time);
-					slot.appendChild(activity);
-					dayCard.appendChild(slot);
-				});
-			} else {
-				const p = document.createElement("p");
-				p.className = "empty";
-				p.textContent = "No activities scheduled for this day.";
-				dayCard.appendChild(p);
-			}
-			outputDiv.appendChild(dayCard);
-		}
-
-		// Render Extra Content (Topics and Questions)
-		if (data.importantTopics || data.importantQuestions) {
-			extraDiv.innerHTML = `
-				<div class="extra-card">
-					<h3><span class="file-icon">🎯</span> Important Topics</h3>
-					<ul>
-						${(data.importantTopics || []).map(t => `<li>${t}</li>`).join('')}
-					</ul>
-				</div>
-				<div class="extra-card">
-					<h3><span class="file-icon">❓</span> Important Questions</h3>
-					<ul>
-						${(data.importantQuestions || []).map(q => `<li>${q}</li>`).join('')}
-					</ul>
-				</div>
-			`;
-		}
+		renderPlan(data);
 		
 		// If no days were processed, show a message
+		const timetableData = data.timetable || data;
 		if (Object.keys(timetableData).length === 0) {
 			outputDiv.innerHTML = "<div class='alert alert-warn'>No study plan was generated. Please try again with a different description.</div>";
 		} else {
@@ -147,11 +267,10 @@ async function generate() {
 	}
 }
 
-// Expose generate to global scope for onclick handler
-window.generate = generate;
-
 // Add event listener for file input to show selected filename
 document.addEventListener('DOMContentLoaded', () => {
+	checkAuth();
+
 	const fileInput = document.getElementById("notes-upload");
 	const fileLabel = document.querySelector(".file-label span:nth-child(2)");
 	
@@ -286,6 +405,13 @@ async function downloadImage() {
 	}
 }
 
+window.generate = generate;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.toggleAuthForms = toggleAuthForms;
+window.login = login;
+window.signup = signup;
+window.logout = logout;
 window.toggleEdit = toggleEdit;
 window.toggleSave = toggleSave;
 window.downloadImage = downloadImage;

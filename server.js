@@ -5,6 +5,9 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import multer from "multer";
 import mammoth from "mammoth";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import User from "./models/User.js";
 
 dotenv.config();
 
@@ -12,6 +15,55 @@ const app = express();
 // Add basic body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// MongoDB Connection with optimized serverless handling
+const MONGODB_URI = process.env.MONGODB_URI;
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+  if (!MONGODB_URI) {
+    console.warn("WARNING: MONGODB_URI is not set. Database features will not work.");
+    return;
+  }
+  try {
+    const db = await mongoose.connect(MONGODB_URI);
+    isConnected = db.connections[0].readyState === 1;
+    console.log("Connected to MongoDB Atlas");
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+  }
+};
+
+// Initial connection
+connectDB();
+
+// Middleware to ensure DB connection for API routes
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path === '/generate') {
+    await connectDB();
+  }
+  next();
+});
+
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || "your-fallback-secret-key";
+
+// Auth Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.status(401).json({ error: "Access denied. Please sign in." });
+
+  try {
+    const verified = jwt.verify(token, JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch (err) {
+    res.status(403).json({ error: "Invalid or expired session. Please sign in again." });
+  }
+};
 
 // Configure Multer for file uploads (memory storage with 5MB limit)
 const upload = multer({ 
@@ -36,7 +88,50 @@ app.get("/", (req, res) => {
   res.sendFile(join(__dirname, "public", "index.html"));
 });
 
-app.post("/generate", (req, res, next) => {
+// Auth Routes
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ error: "Email already in use" });
+
+    const user = new User({ email, password });
+    await user.save();
+
+    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ message: "User created", token, email: user.email });
+  } catch (err) {
+    res.status(500).json({ error: "Signup failed", detail: err.message });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, email: user.email, lastPlan: user.lastPlan });
+  } catch (err) {
+    res.status(500).json({ error: "Login failed", detail: err.message });
+  }
+});
+
+app.get("/api/me", authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    res.json({ email: user.email, lastPlan: user.lastPlan });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user data" });
+  }
+});
+
+app.post("/generate", authenticateToken, (req, res, next) => {
   upload.array('notesFiles', 10)(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: "File upload error", detail: err.message });
@@ -168,6 +263,11 @@ Return ONLY valid JSON in this exact format:
     // Validate the structure
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error("Invalid JSON structure returned");
+    }
+
+    // Save the plan to user's record
+    if (req.user) {
+      await User.findByIdAndUpdate(req.user.userId, { lastPlan: parsed });
     }
 
     res.send(parsed);

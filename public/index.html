@@ -13,7 +13,35 @@
         <h1>Study Planner Generator</h1>
         <p class="subtitle">Describe your goals. Get a one-week timetable instantly.</p>
       </div>
+      <div id="user-section">
+        <button id="auth-btn" onclick="openAuthModal()">Sign In</button>
+        <div id="user-info" class="hidden">
+          <span id="user-email"></span>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </div>
     </div>
+    
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-content">
+        <span class="close" onclick="closeAuthModal()">&times;</span>
+        <div id="login-form">
+          <h2>Login</h2>
+          <input type="email" id="login-email" placeholder="Email">
+          <input type="password" id="login-password" placeholder="Password">
+          <button onclick="login()">Login</button>
+          <p>Don't have an account? <a href="#" onclick="toggleAuthForms()">Sign Up</a></p>
+        </div>
+        <div id="signup-form" class="hidden">
+          <h2>Sign Up</h2>
+          <input type="email" id="signup-email" placeholder="Email">
+          <input type="password" id="signup-password" placeholder="Password">
+          <button onclick="signup()">Sign Up</button>
+          <p>Already have an account? <a href="#" onclick="toggleAuthForms()">Login</a></p>
+        </div>
+      </div>
+    </div>
+
     <div class="controls">
       <textarea id="input" placeholder="e.g., 2 hours daily for Math and Physics, evenings only, include breaks"></textarea>
       <div class="side-controls">
