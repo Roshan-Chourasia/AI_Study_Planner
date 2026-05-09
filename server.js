@@ -126,6 +126,9 @@ app.post("/api/signup", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ error: "Server configuration error", detail: "JWT_SECRET is not defined in Vercel." });
+    }
     const user = await User.findOne({ email });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ error: "Invalid email or password" });
