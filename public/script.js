@@ -66,7 +66,7 @@ async function login() {
 				document.getElementById("action-bar").classList.remove("hidden");
 			}
 		} else {
-			alert(data.error || "Login failed");
+			alert(`${data.error || "Login failed"}: ${data.detail || ""}`);
 		}
 	} catch (err) {
 		alert("Login error: " + err.message);
@@ -90,7 +90,7 @@ async function signup() {
 			updateUserUI(data.email);
 			closeAuthModal();
 		} else {
-			alert(data.error || "Signup failed");
+			alert(`${data.error || "Signup failed"}: ${data.detail || ""}`);
 		}
 	} catch (err) {
 		alert("Signup error: " + err.message);

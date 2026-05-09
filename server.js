@@ -23,31 +23,42 @@ let isConnected = false;
 const connectDB = async () => {
   if (isConnected) return;
   if (!MONGODB_URI) {
-    console.warn("WARNING: MONGODB_URI is not set. Database features will not work.");
-    return;
+    throw new Error("MONGODB_URI is not defined in environment variables");
   }
   try {
-    const db = await mongoose.connect(MONGODB_URI);
+    const db = await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000 // Timeout after 5s
+    });
     isConnected = db.connections[0].readyState === 1;
     console.log("Connected to MongoDB Atlas");
   } catch (err) {
-    console.error("MongoDB connection error:", err);
+    console.error("MongoDB connection error details:", err.message);
+    throw err;
   }
 };
 
-// Initial connection
-connectDB();
+// Initial connection (don't await here to avoid blocking startup)
+connectDB().catch(err => console.error("Initial DB connect failed"));
 
 // Middleware to ensure DB connection for API routes
 app.use(async (req, res, next) => {
   if (req.path.startsWith('/api') || req.path === '/generate') {
-    await connectDB();
+    try {
+      await connectDB();
+      next();
+    } catch (err) {
+      res.status(503).json({ 
+        error: "Database connection failed", 
+        detail: "The server could not connect to MongoDB. Please check if MONGODB_URI is set in Vercel and if your IP is whitelisted in Atlas (0.0.0.0/0)." 
+      });
+    }
+  } else {
+    next();
   }
-  next();
 });
 
 // JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || "your-fallback-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -94,6 +105,10 @@ app.post("/api/signup", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
 
+    if (!JWT_SECRET) {
+      return res.status(500).json({ error: "Server configuration error", detail: "JWT_SECRET is not defined in Vercel." });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ error: "Email already in use" });
 
@@ -103,6 +118,7 @@ app.post("/api/signup", async (req, res) => {
     const token = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ message: "User created", token, email: user.email });
   } catch (err) {
+    console.error("Signup error:", err);
     res.status(500).json({ error: "Signup failed", detail: err.message });
   }
 });
