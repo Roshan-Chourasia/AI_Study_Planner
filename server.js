@@ -59,6 +59,8 @@ app.use(async (req, res, next) => {
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 // Auth Middleware
 const authenticateToken = (req, res, next) => {
@@ -102,8 +104,15 @@ app.get("/", (req, res) => {
 // Auth Routes
 app.post("/api/signup", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
     if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+    if (!PASSWORD_REGEX.test(password)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, and a number" });
+    }
 
     if (!JWT_SECRET) {
       return res.status(500).json({ error: "Server configuration error", detail: "JWT_SECRET is not defined in Vercel." });
@@ -125,7 +134,14 @@ app.post("/api/signup", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
     if (!JWT_SECRET) {
       return res.status(500).json({ error: "Server configuration error", detail: "JWT_SECRET is not defined in Vercel." });
     }

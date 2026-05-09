@@ -1,6 +1,24 @@
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 let currentUser = null;
+
+function setAuthError(targetId, message) {
+	const node = document.getElementById(targetId);
+	if (!node) return;
+	node.textContent = message;
+	node.classList.remove("hidden");
+}
+
+function clearAuthErrors() {
+	["login-error", "signup-error"].forEach((id) => {
+		const node = document.getElementById(id);
+		if (!node) return;
+		node.textContent = "";
+		node.classList.add("hidden");
+	});
+}
 
 async function checkAuth() {
 	const token = localStorage.getItem("token");
@@ -33,21 +51,33 @@ function updateUserUI(email) {
 }
 
 function openAuthModal() {
+	clearAuthErrors();
 	document.getElementById("auth-modal").classList.remove("hidden");
 }
 
 function closeAuthModal() {
+	clearAuthErrors();
 	document.getElementById("auth-modal").classList.add("hidden");
 }
 
 function toggleAuthForms() {
+	clearAuthErrors();
 	document.getElementById("login-form").classList.toggle("hidden");
 	document.getElementById("signup-form").classList.toggle("hidden");
 }
 
 async function login() {
-	const email = document.getElementById("login-email").value;
+	clearAuthErrors();
+	const email = document.getElementById("login-email").value.trim().toLowerCase();
 	const password = document.getElementById("login-password").value;
+	if (!email || !password) {
+		setAuthError("login-error", "Email and password are required.");
+		return;
+	}
+	if (!EMAIL_REGEX.test(email)) {
+		setAuthError("login-error", "Please enter a valid email address.");
+		return;
+	}
 	
 	try {
 		const res = await fetch("/api/login", {
@@ -66,16 +96,29 @@ async function login() {
 				document.getElementById("action-bar").classList.remove("hidden");
 			}
 		} else {
-			alert(`${data.error || "Login failed"}: ${data.detail || ""}`);
+			setAuthError("login-error", `${data.error || "Login failed"}${data.detail ? `: ${data.detail}` : ""}`);
 		}
 	} catch (err) {
-		alert("Login error: " + err.message);
+		setAuthError("login-error", "Login error: " + err.message);
 	}
 }
 
 async function signup() {
-	const email = document.getElementById("signup-email").value;
+	clearAuthErrors();
+	const email = document.getElementById("signup-email").value.trim().toLowerCase();
 	const password = document.getElementById("signup-password").value;
+	if (!email || !password) {
+		setAuthError("signup-error", "Email and password are required.");
+		return;
+	}
+	if (!EMAIL_REGEX.test(email)) {
+		setAuthError("signup-error", "Please enter a valid email address.");
+		return;
+	}
+	if (!PASSWORD_REGEX.test(password)) {
+		setAuthError("signup-error", "Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+		return;
+	}
 	
 	try {
 		const res = await fetch("/api/signup", {
@@ -90,10 +133,10 @@ async function signup() {
 			updateUserUI(data.email);
 			closeAuthModal();
 		} else {
-			alert(`${data.error || "Signup failed"}: ${data.detail || ""}`);
+			setAuthError("signup-error", `${data.error || "Signup failed"}${data.detail ? `: ${data.detail}` : ""}`);
 		}
 	} catch (err) {
-		alert("Signup error: " + err.message);
+		setAuthError("signup-error", "Signup error: " + err.message);
 	}
 }
 

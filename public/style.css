@@ -148,6 +148,21 @@ button[disabled] { cursor: not-allowed; filter: grayscale(0.2) brightness(0.85);
 .modal button { width: 100%; margin-top: 8px; }
 .modal p { text-align: center; margin-top: 20px; font-size: 14px; color: var(--muted); }
 .modal a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.auth-message {
+	padding: 10px 12px;
+	margin-bottom: 14px;
+	border-radius: 8px;
+	background: rgba(255,107,107,0.1);
+	border: 1px solid rgba(255,107,107,0.35);
+	color: #ffd9d9;
+	font-size: 13px;
+}
+.password-hint {
+	margin: -8px 0 10px 0;
+	text-align: left;
+	font-size: 12px;
+	color: var(--muted);
+}
 
 .hidden { display: none !important; }
 
